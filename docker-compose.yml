@@ -1,23 +1,37 @@
-version: "3.8"
+version: '3'
 
 services:
+  redis:
+    image: redis:latest
+    container_name: redis_for_bot
+    restart: always
+
   bot:
     build: .
+    container_name: telegram_bot
+    restart: always
     environment:
-      - BOT_TOKEN=你的TG机器人TOKEN
-      - ADMIN_ID=你的TG ID
-      - GROUP_ID=你的群ID
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - GROUP_ID=${GROUP_ID}
     depends_on:
       - redis
-    restart: unless-stopped
     volumes:
-      - ./logs:/app/logs
-  redis:
-    image: redis:7-alpine
-    restart: always
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
+      - .:/app
+    networks:
+      - bot_network
 
-volumes:
-  redis_data:
+  web:
+    build: ./web
+    container_name: web_panel
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    networks:
+      - bot_network
+
+networks:
+  bot_network:
+    driver: bridge
