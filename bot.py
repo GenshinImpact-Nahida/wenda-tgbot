@@ -17,7 +17,13 @@ bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
 # Redis连接
-r = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+try:
+    r = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+    r.ping()
+    logging.info("✅ 成功连接到 Redis。")
+except redis.exceptions.ConnectionError as e:
+    logging.critical(f"❌ 无法连接到 Redis: {e}")
+    r = None
 
 # 问卷分页配置
 ITEMS_PER_PAGE = 10
@@ -142,7 +148,6 @@ async def add_question(message: Message, command: CommandObject):
     except Exception as e:
         logging.exception("添加问题失败")
         await message.reply(f"❌ 添加问题失败: {e}")
-
 
 @dp.message(Command("addbranch", magic=F.caption), F.photo)
 @dp.message(Command("addbranch", magic=F.caption), F.document)
@@ -557,6 +562,11 @@ async def show_help(message: Message):
 
 async def main():
     logging.info("机器人启动中...")
+    
+    # 在启动前检查 Redis 连接，如果没有连接成功就直接退出
+    if r is None:
+        logging.critical("❌ Redis 连接失败，程序将退出。请检查 Redis 服务是否正常运行。")
+        return
     
     if ADMIN_ID and GROUP_ID:
         try:
