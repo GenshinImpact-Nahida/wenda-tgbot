@@ -64,7 +64,7 @@ ADMIN_HELP_TEXT = """
 
 <b>🖼️ 添加图片问题:</b>
 - 发送图片，并在图片标题中输入命令
-- 格式: <图片标题> /addquestion 问题
+- 格式: &lt;图片标题&gt; /addquestion 问题
 - 例如: (图片) /addquestion 你喜欢这张图片吗？
 """
 
@@ -94,12 +94,10 @@ async def add_question(message: Message, command: CommandObject):
     if not current_category:
         return await message.reply("❌ 请先使用 /new <目录名> 创建一个目录。")
     
-    # 检查命令参数是否在消息或标题中
     args = command.args or message.caption
     if not args:
         return await message.reply("❌ 请提供问题内容\n格式: /addquestion 问题|选项1,选项2,选项3")
 
-    # 处理图片
     photo_file_id = None
     if message.photo:
         photo_file_id = message.photo[-1].file_id
