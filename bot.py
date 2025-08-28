@@ -80,10 +80,27 @@ ADMIN_HELP_TEXT = """
 - 例如: (图片) /addquestion 你喜欢这张图片吗？
 """
 
-# 管理员命令
+# --- 管理员命令助手函数 ---
+def is_admin(user_id: int) -> bool:
+    return str(user_id) == ADMIN_ID
+
+def get_current_category(user_id: int) -> str | None:
+    return r.get(f"admin:{user_id}:current_category")
+
+def get_media_file_id(message: Message) -> str | None:
+    if message.photo:
+        return message.photo[-1].file_id
+    elif message.document and message.document.mime_type.startswith("image/"):
+        return message.document.file_id
+    elif message.video:
+        return message.video.file_id
+    return None
+
+# --- 管理员命令 ---
+
 @dp.message(Command("new"))
 async def new_category(message: Message, command: CommandObject):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
     
     category_name = command.args
@@ -91,32 +108,21 @@ async def new_category(message: Message, command: CommandObject):
         return await message.reply("❌ 请提供目录名，例如：/new 新人入群问卷")
     
     r.sadd("categories", category_name)
-    r.set(f"admin:{ADMIN_ID}:current_category", category_name)
+    r.set(f"admin:{message.from_user.id}:current_category", category_name)
     await message.reply(f"✅ 已创建目录：<b>{category_name}</b>\n后续添加的问题都将自动归入此目录。", parse_mode=ParseMode.HTML)
 
-@dp.message(Command("addquestion", magic=F.caption), F.photo)
-@dp.message(Command("addquestion", magic=F.caption), F.document)
-@dp.message(Command("addquestion", magic=F.caption), F.video)
-@dp.message(Command("addquestion"))
+@dp.message(Command("addquestion", magic=F.caption) | Command("addquestion"), F.photo | F.document | F.video | F.text)
 async def add_question(message: Message, command: CommandObject):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
 
-    current_category = r.get(f"admin:{ADMIN_ID}:current_category")
+    current_category = get_current_category(message.from_user.id)
     if not current_category:
         return await message.reply("❌ 请先使用 /new <目录名> 创建一个目录。")
     
     args = command.args or message.caption
     if not args:
         return await message.reply("❌ 请提供问题内容\n格式: /addquestion 问题|选项1,选项2,选项3")
-
-    photo_file_id = None
-    if message.photo:
-        photo_file_id = message.photo[-1].file_id
-    elif message.document and message.document.mime_type.startswith("image/"):
-        photo_file_id = message.document.file_id
-    elif message.video:
-        photo_file_id = message.video.file_id
 
     try:
         text = args.strip()
@@ -125,45 +131,37 @@ async def add_question(message: Message, command: CommandObject):
             text = text.replace(" -skip", "").strip()
             is_skippable = True
         
-        if "|" in text:
-            question, options = text.split("|", 1)
-            question = question.strip()
-            options = options.strip()
-        else:
-            question = text
-            options = ""
+        question, options = text.split("|", 1) if "|" in text else (text, "")
         
         idx = r.incr("question_count")
         
         question_data = {
-            "text": question,
+            "text": question.strip(),
             "category": current_category,
-            "options": options,
+            "options": options.strip(),
             "skippable": "true" if is_skippable else "false"
         }
         
-        if photo_file_id:
-            question_data["media_type"] = "photo"
-            question_data["media_id"] = photo_file_id
+        media_id = get_media_file_id(message)
+        if media_id:
+            question_data["media_type"] = "photo" if message.photo else "video" if message.video else "document"
+            question_data["media_id"] = media_id
             
         r.hmset(f"question:{idx}", question_data)
         r.sadd(f"category_questions:{current_category}", idx)
         
-        await message.reply(f"✅ 已添加问题 {idx} 到目录 <b>{current_category}</b>: {question}", parse_mode=ParseMode.HTML)
+        await message.reply(f"✅ 已添加问题 {idx} 到目录 <b>{current_category}</b>: {question.strip()}", parse_mode=ParseMode.HTML)
         
     except Exception as e:
         logging.exception("添加问题失败")
         await message.reply(f"❌ 添加问题失败: {e}")
 
-@dp.message(Command("addbranch", magic=F.caption), F.photo)
-@dp.message(Command("addbranch", magic=F.caption), F.document)
-@dp.message(Command("addbranch", magic=F.caption), F.video)
-@dp.message(Command("addbranch"))
+@dp.message(Command("addbranch", magic=F.caption) | Command("addbranch"), F.photo | F.document | F.video | F.text)
 async def add_branch_question(message: Message, command: CommandObject):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
     
-    current_category = r.get(f"admin:{ADMIN_ID}:current_category")
+    current_category = get_current_category(message.from_user.id)
     if not current_category:
         return await message.reply("❌ 请先使用 /new <目录名> 创建一个目录。")
     
@@ -171,41 +169,28 @@ async def add_branch_question(message: Message, command: CommandObject):
     if not args:
         return await message.reply("❌ 请提供分支问题内容\n格式: /addbranch 问题|选项1:下一题ID,选项2:下一题ID")
 
-    photo_file_id = None
-    if message.photo:
-        photo_file_id = message.photo[-1].file_id
-    elif message.document and message.document.mime_type.startswith("image/"):
-        photo_file_id = message.document.file_id
-    elif message.video:
-        photo_file_id = message.video.file_id
-
     try:
         text = args.strip()
-        if "|" in text:
-            question, options = text.split("|", 1)
-            question = question.strip()
-            options = options.strip()
-        else:
-            question = text
-            options = ""
+        question, options = text.split("|", 1) if "|" in text else (text, "")
         
         idx = r.incr("question_count")
         
         question_data = {
-            "text": question,
+            "text": question.strip(),
             "type": "branch",
             "category": current_category,
-            "options": options
+            "options": options.strip()
         }
         
-        if photo_file_id:
-            question_data["media_type"] = "photo"
-            question_data["media_id"] = photo_file_id
+        media_id = get_media_file_id(message)
+        if media_id:
+            question_data["media_type"] = "photo" if message.photo else "video" if message.video else "document"
+            question_data["media_id"] = media_id
         
         r.hmset(f"question:{idx}", question_data)
         r.sadd(f"category_questions:{current_category}", idx)
         
-        await message.reply(f"✅ 已添加分支问题 {idx} 到目录 <b>{current_category}</b>: {question}", parse_mode=ParseMode.HTML)
+        await message.reply(f"✅ 已添加分支问题 {idx} 到目录 <b>{current_category}</b>: {question.strip()}", parse_mode=ParseMode.HTML)
         
     except Exception as e:
         logging.exception("添加分支问题失败")
@@ -213,7 +198,7 @@ async def add_branch_question(message: Message, command: CommandObject):
 
 @dp.message(Command("listquestions"))
 async def list_questions(message: Message):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
 
     categories = r.smembers("categories")
@@ -243,15 +228,15 @@ async def list_questions(message: Message):
 
 @dp.message(Command("done"))
 async def done_editing(message: Message):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
     
-    r.delete(f"admin:{ADMIN_ID}:current_category")
+    r.delete(f"admin:{message.from_user.id}:current_category")
     await message.reply("✅ 编辑会话已结束，当前目录已取消。")
 
 @dp.message(Command("clearall"))
 async def clear_all_questions(message: Message):
-    if str(message.from_user.id) != ADMIN_ID:
+    if not is_admin(message.from_user.id):
         return await message.reply("❌ 没有权限")
     
     for key in r.scan_iter("question:*"):
@@ -262,7 +247,8 @@ async def clear_all_questions(message: Message):
     r.delete("categories")
     await message.reply("✅ 已清空所有问题和目录。")
 
-# 用户命令
+# --- 用户命令 ---
+
 @dp.message(Command("start"))
 async def start_command(message: Message):
     await message.reply(WELCOME_TEXT)
@@ -416,24 +402,22 @@ async def send_question(user_id: int):
     question_text = f"❓ 问题 {q_index}: {question}"
     
     if options:
-        kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, keyboard=[])
         for opt in options.split(","):
             opt_text = opt.split(":")[0].strip() if ":" in opt else opt.strip()
-            kb.add(types.KeyboardButton(text=opt_text))
+            kb.keyboard.append([types.KeyboardButton(text=opt_text)])
     
     if is_skippable:
         if kb:
-            kb.add(types.KeyboardButton(text="跳过"))
+            kb.keyboard.append([types.KeyboardButton(text="跳过")])
         else:
-            kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-            kb.add(types.KeyboardButton(text="跳过"))
+            kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, keyboard=[[types.KeyboardButton(text="跳过")]])
     
     # 添加“返回”按钮
     if kb:
-        kb.add(types.KeyboardButton(text="返回"))
+        kb.keyboard.append([types.KeyboardButton(text="返回")])
     else:
-        kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        kb.add(types.KeyboardButton(text="返回"))
+        kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, keyboard=[[types.KeyboardButton(text="返回")]])
 
     if q_type == "branch":
         question_text += "\n\n🔄 这是一个分支问题，你的选择将决定下一题"
@@ -679,7 +663,7 @@ async def check_status(message: Message):
 
 @dp.message(Command("help"))
 async def show_help(message: Message):
-    if str(message.from_user.id) == ADMIN_ID:
+    if is_admin(message.from_user.id):
         await message.reply(ADMIN_HELP_TEXT, parse_mode=ParseMode.HTML)
     else:
         await message.reply(WELCOME_TEXT, parse_mode=ParseMode.HTML)

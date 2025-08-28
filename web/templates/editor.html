@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问卷编辑器</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .container { display: flex; gap: 20px; }
+        .editor-panel, .preview-panel { flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+        .question-box { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>问卷编辑器</h1>
+    <div class="container">
+        <div class="editor-panel">
+            <h2>目录与问题设置</h2>
+            <p><strong>选择或新建目录:</strong></p>
+            <select id="directory-select">
+                <option value="dir1">目录1</option>
+                <option value="dir2">目录2</option>
+                <option value="new">新建目录...</option>
+            </select>
+            <input type="text" id="new-directory-input" placeholder="输入新目录名" style="display:none;">
+
+            <hr>
+
+            <h3>创建问题</h3>
+            <label for="question-text">问题内容:</label>
+            <input type="text" id="question-text" oninput="updatePreview()" placeholder="请输入问题" style="width:100%;">
+            
+            <label for="question-type">问题类型:</label>
+            <select id="question-type" onchange="updatePreview()">
+                <option value="text">文本输入</option>
+                <option value="radio">单选</option>
+                <option value="checkbox">多选</option>
+            </select>
+            
+            <div id="options-container" style="display:none;">
+                <label>选项 (每行一个):</label>
+                <textarea id="options-textarea" rows="4" oninput="updatePreview()"></textarea>
+            </div>
+            
+            <button onclick="addQuestion()">添加问题</button>
+        </div>
+
+        <div class="preview-panel">
+            <h2>预览</h2>
+            <form id="preview-form"></form>
+        </div>
+    </div>
+
+    <script>
+        const directorySelect = document.getElementById('directory-select');
+        const newDirectoryInput = document.getElementById('new-directory-input');
+        const questionType = document.getElementById('question-type');
+        const optionsContainer = document.getElementById('options-container');
+
+        // 显示/隐藏新建目录输入框
+        directorySelect.addEventListener('change', () => {
+            if (directorySelect.value === 'new') {
+                newDirectoryInput.style.display = 'inline';
+            } else {
+                newDirectoryInput.style.display = 'none';
+            }
+        });
+
+        // 显示/隐藏选项输入框
+        questionType.addEventListener('change', () => {
+            if (questionType.value === 'radio' || questionType.value === 'checkbox') {
+                optionsContainer.style.display = 'block';
+            } else {
+                optionsContainer.style.display = 'none';
+            }
+            updatePreview();
+        });
+
+        function updatePreview() {
+            const previewForm = document.getElementById('preview-form');
+            previewForm.innerHTML = '';
+            
+            const questionText = document.getElementById('question-text').value;
+            const type = document.getElementById('question-type').value;
+
+            if (questionText) {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-box';
+                questionDiv.innerHTML = `<p><strong>${questionText}</strong></p>`;
+
+                if (type === 'text') {
+                    questionDiv.innerHTML += '<input type="text" placeholder="输入你的回答">';
+                } else if (type === 'radio' || type === 'checkbox') {
+                    const optionsText = document.getElementById('options-textarea').value;
+                    const options = optionsText.split('\n').filter(o => o.trim() !== '');
+                    options.forEach(option => {
+                        const inputType = (type === 'radio') ? 'radio' : 'checkbox';
+                        questionDiv.innerHTML += `
+                            <label>
+                                <input type="${inputType}" name="question" value="${option}"> ${option}
+                            </label><br>
+                        `;
+                    });
+                }
+                previewForm.appendChild(questionDiv);
+            }
+        }
+
+        // 添加问题到列表 (这里只是一个概念性的函数)
+        function addQuestion() {
+            // 你需要在这里实现将问题数据保存到 Redis 的逻辑
+            // 例如，通过 AJAX 请求发送到后端 API
+            alert('问题已添加 (功能待完善)');
+        }
+    </script>
+</body>
+</html>

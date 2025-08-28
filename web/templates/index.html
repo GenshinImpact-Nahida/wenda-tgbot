@@ -1,56 +1,30 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>问卷管理</title>
+    <title>问答机器人网页端</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
-        h1 { text-align: center; color: #2c3e50; }
-        form { display: flex; flex-direction: column; }
-        label { margin-bottom: 8px; font-weight: bold; color: #555; }
-        input[type="text"], textarea { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
-        input[type="text"]:focus, textarea:focus { border-color: #3498db; outline: none; }
-        .radio-group { margin-bottom: 20px; }
-        .radio-group label { font-weight: normal; margin-right: 20px; }
-        .checkbox-group { display: flex; align-items: center; margin-bottom: 20px; }
-        input[type="checkbox"] { margin-right: 10px; }
-        button { background-color: #3498db; color: white; padding: 15px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background-color 0.3s; }
-        button:hover { background-color: #2980b9; }
-        .success-message { text-align: center; color: #27ae60; font-size: 1.1em; margin-bottom: 20px; animation: fadeOut 3s forwards; }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        .footer { position: fixed; bottom: 20px; width: 100%; }
+        .button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>添加问卷问题</h1>
-        {% if success %}
-        <div id="success-message" class="success-message">问题已成功添加！</div>
-        {% endif %}
-        <form action="/add" method="post">
-            <label for="question_text">问题文本:</label>
-            <textarea id="question_text" name="question_text" rows="4" required></textarea>
-
-            <label for="options">选项 (可选):</label>
-            <p style="font-size: 0.9em; margin-top: -10px; margin-bottom: 15px; color: #888;">对于分支问题，格式为：选项1:下一题ID,选项2:下一题ID</p>
-            <input type="text" id="options" name="options">
-
-            <label>问题类型:</label>
-            <div class="radio-group">
-                <input type="radio" id="type_normal" name="question_type" value="normal" checked>
-                <label for="type_normal">普通问题</label>
-                <input type="radio" id="type_branch" name="question_type" value="branch">
-                <label for="type_branch">分支问题</label>
-            </div>
-
-            <div class="checkbox-group">
-                <input type="checkbox" id="is_skippable" name="is_skippable">
-                <label for="is_skippable">此问题可跳过</label>
-            </div>
-            
-            <button type="submit">添加问题</button>
-        </form>
+    <h1>问答机器人网页端</h1>
+    <p>点击下方按钮进入问卷编辑界面。</p>
+    <a href="/editor" class="button">进入编辑器</a>
+    <div class="footer">
+        开发人 TG: {{ developer }}
     </div>
 </body>
 </html>
