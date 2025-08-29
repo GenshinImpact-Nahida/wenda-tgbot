@@ -1,117 +1,351 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>问卷编辑器</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .container { display: flex; gap: 20px; }
-        .editor-panel, .preview-panel { flex: 1; border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
-        .question-box { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            display: flex;
+            gap: 30px;
+        }
+        .sidebar, .main-content {
+            padding: 10px;
+        }
+        .sidebar {
+            width: 30%;
+            border-right: 1px solid #eee;
+        }
+        .main-content {
+            width: 70%;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .category-item, .question-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .category-item.active {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        .category-item:not(.active):hover, .question-item:hover {
+            background-color: #dbe4e6;
+        }
+        .category-name, .question-text {
+            flex-grow: 1;
+        }
+        .delete-button, .add-button {
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .delete-button {
+            background-color: #e74c3c;
+        }
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
+        .add-button {
+            background-color: #2ecc71;
+            font-weight: normal;
+        }
+        .add-button:hover {
+            background-color: #27ae60;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #question-form {
+            display: none;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-    <h1>问卷编辑器</h1>
     <div class="container">
-        <div class="editor-panel">
-            <h2>目录与问题设置</h2>
-            <p><strong>选择或新建目录:</strong></p>
-            <select id="directory-select">
-                <option value="dir1">目录1</option>
-                <option value="dir2">目录2</option>
-                <option value="new">新建目录...</option>
-            </select>
-            <input type="text" id="new-directory-input" placeholder="输入新目录名" style="display:none;">
-
-            <hr>
-
-            <h3>创建问题</h3>
-            <label for="question-text">问题内容:</label>
-            <input type="text" id="question-text" oninput="updatePreview()" placeholder="请输入问题" style="width:100%;">
-            
-            <label for="question-type">问题类型:</label>
-            <select id="question-type" onchange="updatePreview()">
-                <option value="text">文本输入</option>
-                <option value="radio">单选</option>
-                <option value="checkbox">多选</option>
-            </select>
-            
-            <div id="options-container" style="display:none;">
-                <label>选项 (每行一个):</label>
-                <textarea id="options-textarea" rows="4" oninput="updatePreview()"></textarea>
+        <div class="sidebar">
+            <h2>目录管理</h2>
+            <div id="category-list">
+                </div>
+            <div class="form-group">
+                <h3>新增目录</h3>
+                <input type="text" id="new-category-name" placeholder="输入新目录名称">
+                <button id="add-category-button" class="add-button">添加</button>
             </div>
-            
-            <button onclick="addQuestion()">添加问题</button>
         </div>
 
-        <div class="preview-panel">
-            <h2>预览</h2>
-            <form id="preview-form"></form>
+        <div class="main-content">
+            <h2 id="current-category-title">请选择一个目录...</h2>
+            <div id="question-list">
+                </div>
+            
+            <div id="question-form">
+                <h3>新增问题</h3>
+                <div class="form-group">
+                    <label for="question-text">问题文本：</label>
+                    <textarea id="question-text" rows="4" placeholder="输入问题文本" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="options">选项 (可选)：</label>
+                    <input type="text" id="options" placeholder="选项1:下一题ID,选项2:下一题ID">
+                </div>
+                <div class="form-group">
+                    <label for="type">问题类型：</label>
+                    <select id="type">
+                        <option value="normal">普通问题</option>
+                        <option value="branch">分支问题</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="skippable">
+                        可跳过
+                    </label>
+                </div>
+                <button id="submit-question" class="add-button">保存问题</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const directorySelect = document.getElementById('directory-select');
-        const newDirectoryInput = document.getElementById('new-directory-input');
-        const questionType = document.getElementById('question-type');
-        const optionsContainer = document.getElementById('options-container');
-
-        // 显示/隐藏新建目录输入框
-        directorySelect.addEventListener('change', () => {
-            if (directorySelect.value === 'new') {
-                newDirectoryInput.style.display = 'inline';
-            } else {
-                newDirectoryInput.style.display = 'none';
-            }
-        });
-
-        // 显示/隐藏选项输入框
-        questionType.addEventListener('change', () => {
-            if (questionType.value === 'radio' || questionType.value === 'checkbox') {
-                optionsContainer.style.display = 'block';
-            } else {
-                optionsContainer.style.display = 'none';
-            }
-            updatePreview();
-        });
-
-        function updatePreview() {
-            const previewForm = document.getElementById('preview-form');
-            previewForm.innerHTML = '';
+        document.addEventListener('DOMContentLoaded', () => {
+            const categoryList = document.getElementById('category-list');
+            const newCategoryInput = document.getElementById('new-category-name');
+            const addCategoryButton = document.getElementById('add-category-button');
+            const currentCategoryTitle = document.getElementById('current-category-title');
+            const questionList = document.getElementById('question-list');
+            const questionForm = document.getElementById('question-form');
+            const submitQuestionButton = document.getElementById('submit-question');
+            const questionText = document.getElementById('question-text');
+            const optionsInput = document.getElementById('options');
+            const typeSelect = document.getElementById('type');
+            const skippableCheckbox = document.getElementById('skippable');
             
-            const questionText = document.getElementById('question-text').value;
-            const type = document.getElementById('question-type').value;
+            let activeCategory = null;
 
-            if (questionText) {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'question-box';
-                questionDiv.innerHTML = `<p><strong>${questionText}</strong></p>`;
-
-                if (type === 'text') {
-                    questionDiv.innerHTML += '<input type="text" placeholder="输入你的回答">';
-                } else if (type === 'radio' || type === 'checkbox') {
-                    const optionsText = document.getElementById('options-textarea').value;
-                    const options = optionsText.split('\n').filter(o => o.trim() !== '');
-                    options.forEach(option => {
-                        const inputType = (type === 'radio') ? 'radio' : 'checkbox';
-                        questionDiv.innerHTML += `
-                            <label>
-                                <input type="${inputType}" name="question" value="${option}"> ${option}
-                            </label><br>
-                        `;
+            async function fetchCategories() {
+                try {
+                    const response = await fetch('/api/categories');
+                    const categories = await response.json();
+                    categoryList.innerHTML = '';
+                    categories.forEach(cat => {
+                        const div = document.createElement('div');
+                        div.className = 'category-item';
+                        div.innerHTML = `<span class="category-name">${cat.name}</span>
+                                         <button class="delete-button" data-name="${cat.name}">删除</button>`;
+                        div.addEventListener('click', () => {
+                            if (activeCategory) {
+                                const activeItem = document.querySelector(`.category-item.active`);
+                                if (activeItem) {
+                                    activeItem.classList.remove('active');
+                                }
+                            }
+                            div.classList.add('active');
+                            activeCategory = cat.name;
+                            currentCategoryTitle.textContent = `当前目录：${cat.name}`;
+                            questionForm.style.display = 'block';
+                            fetchQuestions(activeCategory);
+                        });
+                        categoryList.appendChild(div);
                     });
+                } catch (error) {
+                    alert('获取目录失败');
+                    console.error('Error fetching categories:', error);
                 }
-                previewForm.appendChild(questionDiv);
             }
-        }
+            
+            async function addCategory() {
+                const name = newCategoryInput.value.trim();
+                if (!name) {
+                    alert('目录名称不能为空！');
+                    return;
+                }
 
-        // 添加问题到列表 (这里只是一个概念性的函数)
-        function addQuestion() {
-            // 你需要在这里实现将问题数据保存到 Redis 的逻辑
-            // 例如，通过 AJAX 请求发送到后端 API
-            alert('问题已添加 (功能待完善)');
-        }
+                try {
+                    const response = await fetch('/api/categories', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name: name })
+                    });
+                    if (response.ok) {
+                        alert('目录添加成功！');
+                        newCategoryInput.value = '';
+                        fetchCategories();
+                    } else {
+                        const data = await response.json();
+                        alert(`添加失败：${data.error}`);
+                    }
+                } catch (error) {
+                    alert('添加目录失败');
+                    console.error('Error adding category:', error);
+                }
+            }
+
+            async function deleteCategory(name) {
+                if (!confirm(`确定要删除目录 "${name}" 及其下所有问题吗？`)) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/categories/${name}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        alert('目录已删除！');
+                        fetchCategories();
+                        questionList.innerHTML = '';
+                        currentCategoryTitle.textContent = '请选择一个目录...';
+                        questionForm.style.display = 'none';
+                        activeCategory = null;
+                    } else {
+                        const data = await response.json();
+                        alert(`删除失败：${data.error}`);
+                    }
+                } catch (error) {
+                    alert('删除目录失败');
+                    console.error('Error deleting category:', error);
+                }
+            }
+
+            async function fetchQuestions(category) {
+                try {
+                    const response = await fetch(`/api/questions?category=${category}`);
+                    const questions = await response.json();
+                    questionList.innerHTML = '';
+                    questions.forEach(q => {
+                        const div = document.createElement('div');
+                        div.className = 'question-item';
+                        div.innerHTML = `<span class="question-text">${q.id}. ${q.text}</span>
+                                         <button class="delete-button" data-id="${q.id}">删除</button>`;
+                        questionList.appendChild(div);
+                    });
+                } catch (error) {
+                    alert('获取问题失败');
+                    console.error('Error fetching questions:', error);
+                }
+            }
+            
+            async function addQuestion() {
+                const text = questionText.value;
+                const options = optionsInput.value;
+                const type = typeSelect.value;
+                const skippable = skippableCheckbox.checked;
+
+                if (!text || !activeCategory) {
+                    alert('问题文本或目录不能为空！');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/questions', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            text: text,
+                            category: activeCategory,
+                            options: options,
+                            type: type,
+                            skippable: skippable
+                        })
+                    });
+                    if (response.ok) {
+                        alert('问题添加成功！');
+                        questionText.value = '';
+                        optionsInput.value = '';
+                        typeSelect.value = 'normal';
+                        skippableCheckbox.checked = false;
+                        fetchQuestions(activeCategory);
+                    } else {
+                        const data = await response.json();
+                        alert(`添加问题失败: ${data.error}`);
+                    }
+                } catch (error) {
+                    alert('添加问题失败');
+                    console.error('Error adding question:', error);
+                }
+            }
+
+            async function deleteQuestion(id) {
+                if (!confirm(`确定要删除问题 ${id} 吗？`)) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/questions/${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        alert('问题已删除！');
+                        fetchQuestions(activeCategory);
+                    } else {
+                        const data = await response.json();
+                        alert(`删除问题失败：${data.error}`);
+                    }
+                } catch (error) {
+                    alert('删除问题失败');
+                    console.error('Error deleting question:', error);
+                }
+            }
+
+            addCategoryButton.addEventListener('click', addCategory);
+            submitQuestionButton.addEventListener('click', addQuestion);
+
+            categoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-button')) {
+                    const name = e.target.dataset.name;
+                    e.stopPropagation();
+                    deleteCategory(name);
+                }
+            });
+
+            questionList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-button')) {
+                    const id = e.target.dataset.id;
+                    deleteQuestion(id);
+                }
+            });
+
+            fetchCategories();
+        });
     </script>
 </body>
 </html>
