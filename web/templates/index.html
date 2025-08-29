@@ -1,28 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>问答机器人网页端</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-        .footer { position: fixed; bottom: 20px; width: 100%; }
+        /* 基础样式和背景 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f2f5; /* 浅灰色背景，告别纯白 */
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 主容器样式 */
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #fff; /* 白色卡片背景 */
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* 更有层次感的阴影 */
+            text-align: center;
+        }
+        
+        /* 标题和信息文本 */
+        h1 {
+            color: #2c3e50; /* 深蓝色标题 */
+            margin-bottom: 20px;
+        }
+
+        .info {
+            font-size: 1.1em;
+            color: #7f8c8d; /* 灰色文本 */
+            margin-bottom: 30px;
+        }
+
+        /* 按钮样式和交互效果 */
         .button {
-            padding: 10px 20px;
-            font-size: 1.2em;
-            cursor: pointer;
-            background-color: #007BFF;
+            display: inline-block;
+            background-color: #3498db; /* 漂亮的蓝色按钮 */
             color: white;
-            border: none;
-            border-radius: 5px;
+            padding: 12px 25px;
+            border-radius: 8px;
             text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease; /* 增加过渡效果 */
+        }
+
+        .button:hover {
+            background-color: #2980b9; /* 鼠标悬停变深 */
+            transform: translateY(-2px); /* 向上移动一点点，增加动感 */
+        }
+
+        /* 页脚样式 */
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #95a5a6;
         }
     </style>
 </head>
 <body>
-    <h1>问答机器人网页端</h1>
-    <p>点击下方按钮进入问卷编辑界面。</p>
-    <a href="/editor" class="button">进入编辑器</a>
+    <div class="container">
+        <h1>问答机器人网页端</h1>
+        <p class="info">点击下方按钮进入问卷编辑界面。</p>
+        <a href="{{ url_for('editor') }}" class="button">进入编辑器</a>
+    </div>
     <div class="footer">
         开发人 TG: {{ developer }}
     </div>
