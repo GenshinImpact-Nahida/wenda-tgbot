@@ -1,37 +1,33 @@
-version: '3'
+version: '3.8'
 
-services:
-  redis:
+services: 
+  redis: 
     image: redis:latest
-    container_name: redis_for_bot
+    container_name: redis-for-bot
     restart: always
 
-  bot:
+  bot:  
     build: .
-    container_name: telegram_bot
+      context: .
+      dockerfile: Dockerfile
+    container_name: nahida.bot
     restart: always
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - ADMIN_ID=${ADMIN_ID}
-      - GROUP_ID=${GROUP_ID}
+    env_file:
+      - .env
     depends_on:
       - redis
-    volumes:
-      - .:/app
-    networks:
-      - bot_network
+    command: python bot.py
 
   web:
-    build: ./web
-    container_name: web_panel
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: wenb_pannel
     restart: always
+    env_file: 
+      - .env
     ports:
       - "5000:5000"
     depends_on:
       - redis
-    networks:
-      - bot_network
-
-networks:
-  bot_network:
-    driver: bridge
+    command: python web.py
