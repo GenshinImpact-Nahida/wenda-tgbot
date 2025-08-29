@@ -1,15 +1,15 @@
 version: '3.8'
 
-services: 
-  redis: 
+services:
+  redis:
     image: redis:latest
     container_name: redis-for-bot
     restart: always
 
-  bot:  
-    build: .
+  bot:
+    build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: bot/Dockerfile
     container_name: nahida.bot
     restart: always
     env_file:
@@ -22,9 +22,9 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-    container_name: wenb_pannel
+    container_name: web_panel
     restart: always
-    env_file: 
+    env_file:
       - .env
     ports:
       - "5000:5000"
