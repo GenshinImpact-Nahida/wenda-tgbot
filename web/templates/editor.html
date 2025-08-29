@@ -11,10 +11,14 @@
             color: #333;
             margin: 0;
             padding: 20px;
+            display: flex; /* 使用Flexbox进行布局 */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            min-height: 100vh;
         }
         .container {
             max-width: 900px;
-            margin: 0 auto;
+            width: 100%;
             background-color: #fff;
             padding: 30px;
             border-radius: 12px;
@@ -100,10 +104,29 @@
         .form-group {
             margin-bottom: 15px;
         }
+
+        /* 登录页面样式 */
+        .login-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            display: none; /* 默认隐藏 */
+        }
+        .login-container h2 {
+            border: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="login-container">
+        <h2>请输入口令</h2>
+        <input type="password" id="password-input" placeholder="请输入口令">
+        <button id="login-button" class="add-button">登录</button>
+    </div>
+
+    <div class="container" id="editor-main">
         <div class="sidebar">
             <h2>目录管理</h2>
             <div id="category-list">
@@ -149,7 +172,36 @@
     </div>
 
     <script>
+        const EDITOR_TOKEN = "your_secret_token"; // 在这里设置你的口令！
+        const loginContainer = document.querySelector('.login-container');
+        const editorMain = document.getElementById('editor-main');
+        const passwordInput = document.getElementById('password-input');
+        const loginButton = document.getElementById('login-button');
+
+        function checkLogin() {
+            if (localStorage.getItem('editor_logged_in') === 'true') {
+                loginContainer.style.display = 'none';
+                editorMain.style.display = 'flex';
+                // 加载页面数据
+                fetchCategories();
+            } else {
+                loginContainer.style.display = 'block';
+                editorMain.style.display = 'none';
+            }
+        }
+
+        loginButton.addEventListener('click', () => {
+            if (passwordInput.value === EDITOR_TOKEN) {
+                localStorage.setItem('editor_logged_in', 'true');
+                checkLogin();
+            } else {
+                alert('口令错误，请重试。');
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            // 以下是原有的编辑器代码，只有登录成功后才会执行
             const categoryList = document.getElementById('category-list');
             const newCategoryInput = document.getElementById('new-category-name');
             const addCategoryButton = document.getElementById('add-category-button');
@@ -343,8 +395,6 @@
                     deleteQuestion(id);
                 }
             });
-
-            fetchCategories();
         });
     </script>
 </body>
